@@ -6,12 +6,6 @@ import java.util.HashMap;
 public class DVRouter extends simplenet.Router{
 
 
-
-    public DVRouter(){
-
-
-
-    }
 //    =========================   VARIABLES ===============================
 
     /**
@@ -28,7 +22,6 @@ public class DVRouter extends simplenet.Router{
      */
     HashMap<Integer, Integer> interfaceToRouterMapping = new HashMap<>();
 
-//    =========================================================================
 
 //    ========================== METHODS ======================================
 
@@ -37,7 +30,6 @@ public class DVRouter extends simplenet.Router{
     public void initialize() {
         sendNameAwarenessMessage();
     }
-
 
 //    MESSAGE PROCESSING -------------
     @Override
@@ -50,7 +42,10 @@ public class DVRouter extends simplenet.Router{
         if(mex instanceof nameRevealMessage){
 
             int routerName = ((nameRevealMessage) mex).getRoutername();
-            interfaceToRouterMapping.put(ifx ,routerName);
+            if(!interfaceToRouterMapping.containsKey(ifx)) {
+                interfaceToRouterMapping.put(ifx, routerName);
+            }
+
             elaborateForwardingTable(ifx);
         }
         // the routers now start to exchange the tables.
@@ -67,9 +62,12 @@ public class DVRouter extends simplenet.Router{
     }
 
     public void elaborateForwardingTable(int ifx){
-        System.out.println("first table to send");
+//        System.out.println("first table to send");
         HashMap<Integer,Double> vectorCost = new HashMap<>();
         vectorCost.put(interfaceToRouterMapping.get(ifx), link_cost(ifx));
+        //initialize self as cost zero
+        vectorCost.put(my_address(), 0.0);
+        // insert first value inside the table
         table.put(my_address(),vectorCost);
 
         for (int i = 0; i < interfaces(); i++){
@@ -80,14 +78,27 @@ public class DVRouter extends simplenet.Router{
     }
 
     public void elaborateBellmanFord(RoutingMessage mex, int ifx){
-        System.out.println("============ BELMANNING NOW! ===============");
-        if(!interfaceToRouterMapping.containsKey(ifx)){
-            interfaceToRouterMapping.put(ifx, ((DVMessage) mex).getAddress());
+        System.out.println("============ "+my_address()+" BELMANNING NOW! ===============");
+
+        HashMap<Integer, HashMap<Integer, Double>> tempTable = ((DVMessage) mex).getMessage();
+
+        for(Integer key : tempTable.keySet()) {
+            System.out.println("====== for key " + key + " ==========");
+            if(!table.containsKey(key)){
+                System.out.println("========= inserting table entry ======");
+                table.put(key,tempTable.get(key));
+            }
+            else{
+                // la table ha questa key
+                // qui fai belman!! devi vedere se i dati di questa tabella sono meglio di quella ricevuta
+
+                System.out.println("TABLE CONTAINS THIS KEY!!!");
+            }
         }
 
-
-        HashMap<Integer, HashMap<Integer, Double>> temptable = ((DVMessage) mex).getMessage();
-        System.out.println("table: " + temptable);
+        System.out.println("temptable: " + tempTable);
+        System.out.println("table: " + table);
+        System.out.println("iRm: "+interfaceToRouterMapping);
     }
 
 
@@ -97,25 +108,6 @@ public class DVRouter extends simplenet.Router{
         for(int i = 0; i< interfaces(); i++){
             send_message(new nameRevealMessage(my_address()),i);
         }
-    }
-
-//     Create a vector table for this router ---------------
-
-    public void initializeTables(){
-        System.out.println("creating Routing table");
-        if (table.isEmpty()){
-            HashMap<Integer,Double> vectorCost = new HashMap<>();
-
-            for (int i = 0; i < interfaces(); i++){
-                // create vector cost hash map
-                vectorCost.put(i, link_cost(i));
-                // initialize next hop table
-                nextHop.put(i,i);
-            }
-            table.put(my_address(), vectorCost);
-        }
-        System.out.println(table);
-        System.out.println(nextHop);
     }
 
 
