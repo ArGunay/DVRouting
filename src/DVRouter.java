@@ -45,26 +45,21 @@ public class DVRouter extends simplenet.Router{
             if(!interfaceToRouterMapping.containsKey(ifx)) {
                 interfaceToRouterMapping.put(ifx, routerName);
             }
-
             elaborateForwardingTable(ifx);
         }
         // the routers now start to exchange the tables.
         else {
-
             elaborateBellmanFord(mex,ifx);
-
-//            System.out.println("===============================================");
-//            System.out.println("iAm " + my_address() + ": incoming message from " + ifx);
-//            System.out.println("Message = " + ((DVMessage) mex).getMessage());
-//            System.out.println("youAre : " + ((DVMessage) mex).getYouare());
-//            System.out.println("===============================================");
         }
     }
 
     public void elaborateForwardingTable(int ifx){
-//        System.out.println("first table to send");
+//
+
         HashMap<Integer,Double> vectorCost = new HashMap<>();
         vectorCost.put(interfaceToRouterMapping.get(ifx), link_cost(ifx));
+
+
         //initialize self as cost zero
         vectorCost.put(my_address(), 0.0);
         // insert first value inside the table
@@ -83,19 +78,33 @@ public class DVRouter extends simplenet.Router{
         HashMap<Integer, HashMap<Integer, Double>> tempTable = ((DVMessage) mex).getMessage();
 
         for(Integer key : tempTable.keySet()) {
-            System.out.println("====== for key " + key + " ==========");
             if(!table.containsKey(key)){
-                System.out.println("========= inserting table entry ======");
-                table.put(key,tempTable.get(key));
-            }
-            else{
-                // la table ha questa key
-                // qui fai belman!! devi vedere se i dati di questa tabella sono meglio di quella ricevuta
 
-                System.out.println("TABLE CONTAINS THIS KEY!!!");
+
+//                System.out.println("tmptbl " + tempTable.keySet());
+                table.put(key,tempTable.get(key));
+
+                // need to add all the nodes not present in this routers table
+                HashMap<Integer, Double> thisNodesTemp = table.get(my_address());
+                System.out.println("thisNodeTemp: "+my_address()+" "+thisNodesTemp);
+
+                for(Integer node : tempTable.keySet()){
+                    if(!thisNodesTemp.containsKey(node)){
+
+                        table.get(my_address()).put(node,  Double.POSITIVE_INFINITY);
+
+                    }
+//                    Math.min(table.get(my_address()).get(node),)
+//                    if(table.get(my_address()).get(node) > )
+
+                }
             }
+
+
+
         }
 
+        System.out.println("=============================");
         System.out.println("temptable: " + tempTable);
         System.out.println("table: " + table);
         System.out.println("iRm: "+interfaceToRouterMapping);
