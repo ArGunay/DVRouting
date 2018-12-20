@@ -8,8 +8,8 @@ It needs the simplenet library
 To compile use the following commands
 
 ```
-javac -classpath simplenet.jar MyRouter.java
+javac -classpath simplenet.jar DVRouter.java
 
-java -classpath simplenet.jar:. simplenet.Network MyRouter <testfile>
+java -classpath simplenet.jar:. simplenet.Network DVRouter <testfile>
 
 ```

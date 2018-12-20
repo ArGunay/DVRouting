@@ -15,8 +15,6 @@ public class DVRouter extends simplenet.Router{
      */
     HashMap<Integer, HashMap<Integer, Double>> table = new HashMap<>();
 
-    HashMap<Integer, Integer> nextHop = new HashMap<>();
-
     //    To map the interface the router has with the actual name of the router
     //   {routerName: interface}
     HashMap<Integer, Integer> routerInterfaceMap = new HashMap<>();
@@ -34,30 +32,71 @@ public class DVRouter extends simplenet.Router{
     @Override
     public void process_routing_message(RoutingMessage mex, int ifx) {
 
-        /**
-         * we need to map the interface to the routers to know
-         * which address maps to which interface
-         * */
         if(mex instanceof nameRevealMessage){
+            // meet
 
             int routerName = ((nameRevealMessage) mex).getRoutername();
+
             if(!routerInterfaceMap.containsKey(routerName)) {
                 routerInterfaceMap.put(routerName, ifx);
+
             }
             elaborateForwardingTable(routerName, ifx);
         }
-        // the routers now start to exchange the tables.
         else {
             elaborateBellmanFord(mex,ifx);
         }
+        System.out.println(my_address()+ " tabFinale??: " + table);
     }
 
-    public void elaborateForwardingTable(int routername, int ifx){
-//
 
+    public void elaborateBellmanFord(RoutingMessage mex, int ifx){
+
+        System.out.println("============ "+my_address()+" BELMANNING NOW! ===============");
+
+        HashMap<Integer, HashMap<Integer, Double>> receivedTable = ((DVMessage) mex).getMessage();
+
+        int senderAddress = ((DVMessage) mex).address;
+        System.out.println(senderAddress+" sent table: " + receivedTable);
+
+        System.out.println("tableBefore:     " + table);
+
+
+        for(Integer router : receivedTable.keySet()) {
+            if (!table.containsKey(router)) {
+//                System.out.println("adding received table to my table");
+                System.out.println("senderAddress: " + senderAddress);
+                table.put(router, receivedTable.get(router));
+
+            }
+            // if the table already contains this router
+            // we have received a new one,
+            // must replace it with the new weights of this route
+            // and compute the new weights if necessary
+
+            // replacing old router table with new one
+            else {
+                table.remove(router);
+                HashMap<Integer, Double> newRouting = receivedTable.get(router);
+                table.put(router, newRouting);
+
+                System.out.println("newRouting "+ newRouting);
+            }
+        }
+
+
+        System.out.println(my_address()+" TableAfter:     " + table);
+        System.out.println("r = i:     "+ routerInterfaceMap);
+        System.out.println("=============================");
+
+    }
+
+    // ======================================================================
+
+    public void elaborateForwardingTable(int routername, int ifx){
+        System.out.println(my_address() +  " Message from " + routername);
         HashMap<Integer,Double> vectorCost = new HashMap<>();
         vectorCost.put(routername, link_cost(ifx));
-
 
         //initialize self as cost zero
         vectorCost.put(my_address(), 0.0);
@@ -69,63 +108,7 @@ public class DVRouter extends simplenet.Router{
         }
 
     }
-
-    public void elaborateBellmanFord(RoutingMessage mex, int ifx){
-
-        System.out.println("============ "+my_address()+" BELMANNING NOW! ===============");
-
-        HashMap<Integer, HashMap<Integer, Double>> receivedTable = ((DVMessage) mex).getMessage();
-        int senderAddress=  ((DVMessage)mex).address;
-        System.out.println("receivedTable: " + receivedTable);
-
-        System.out.println("containskey?: " +table.containsKey(senderAddress));
-
-        for(Integer router : receivedTable.keySet()) {
-            if (!table.containsKey(router)) {
-                System.out.println("adding received table to my table");
-                System.out.println("senderAddress: " + senderAddress);
-                table.put(router, receivedTable.get(router));
-
-            }
-            else
-            {
-                // if the table already contains this router
-                // we have received a new one,
-                // must replace it with the new weights of this route
-                // and compute the new weights if necessary
-
-            }
-        }
-
-
-
-//        for(Integer key : tempTable.keySet()) {
-//            if(!table.containsKey(key)){
-//
-//
-////                System.out.println("tmptbl " + tempTable.keySet());
-//                table.put(key,tempTable.get(key));
-//
-//                // need to add all the nodes not present in this routers table
-//                HashMap<Integer, Double> thisNodesTemp = table.get(my_address());
-//                System.out.println("thisNodeTemp: "+my_address()+" "+thisNodesTemp);
-//
-//                for(Integer node : tempTable.keySet()){
-//                    if(!thisNodesTemp.containsKey(node)){
-//                        table.get(my_address()).put(node,  Double.POSITIVE_INFINITY);
-//                    }
-////                    Math.min(table.get(my_address()).get(node),)
-////                    if(table.get(my_address()).get(node) > )
-//                }
-//            }
-//        }
-
-        System.out.println("table:     " + table);
-        System.out.println("iRm:       "+ routerInterfaceMap);
-        System.out.println("=============================");
-
-    }
-
+// ======================================================================
 
 
     // First avareness message to let neighbors know router name
@@ -146,6 +129,7 @@ class DVMessage extends RoutingMessage{
 
     public HashMap<Integer, HashMap<Integer, Double>> table;
     public int address;
+
 
     public DVMessage(HashMap<Integer, HashMap<Integer, Double>> table, int address){
         this.table = table;
