@@ -16,6 +16,8 @@ public class DVRouter extends simplenet.Router{
 // INITIALIZATE ------------------------
     @Override
     public void initialize() {
+        HashMap<Integer, Double> cost = new HashMap<>();
+        table.put(my_address(), cost);
         for(int i = 0; i< interfaces(); i++){
             send_message(new nameRevealMessage(my_address()),i);
         }
@@ -29,9 +31,9 @@ public class DVRouter extends simplenet.Router{
 
 
             int routerName = ((nameRevealMessage) mex).getRoutername();
-            HashMap<Integer, Double> mytable = table.get(my_address());
-            if(mytable.containsKey(routerName)){
-                if(mytable.get(routerName)> link_cost(ifx)){
+//            HashMap<Integer, Double> mytable = table.get(my_address());
+            if(table.get(my_address()).containsKey(routerName)){
+                if(table.get(my_address()).get(routerName) > link_cost(ifx)){
                     table.get(my_address()).put(routerName,link_cost(ifx));
                     set_forwarding_entry(routerName,ifx);
                 }
@@ -50,31 +52,29 @@ public class DVRouter extends simplenet.Router{
 
             int routername = ((DVMessage) mex).getRoutername();
 
-
-
-            for(Integer router : receivedTable.get(my_address()).keySet()) {
+            for(Integer router : receivedTable.get(routername).keySet()) {
                 if (!table.get(my_address()).containsKey(router)) {
 //                System.out.println("adding received table to my table");
-                    table.get(my_address()).put(router, (link_cost(ifx)+receivedTable.get(my_address()).get(router)));
+                    table.get(my_address()).put(router, (link_cost(ifx)+receivedTable.get(routername).get(router)));
                     set_forwarding_entry(router,ifx);
                     for (int i = 0; i < interfaces(); i++) {
                         send_message(new DVMessage(table, my_address()), ifx);
                     }
                 }
                 else {
-                    if(table.get(my_address()).get(router)> table.get(my_address()).get(routername)+ receivedTable.get)
-
+                    if(table.get(my_address()).get(router) >
+                            table.get(my_address()).get(routername) +
+                                    receivedTable.get(routername).get(router))
+                    {
+                        set_forwarding_entry(router,ifx);
+                        for (int i = 0; i < interfaces(); i++) {
+                            send_message(new DVMessage(table, my_address()), ifx);
+                        }
+                    }
                 }
             }
-
-
         }
     }
-
-
-
-
-
 }
 
 
