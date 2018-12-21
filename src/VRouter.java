@@ -8,14 +8,9 @@ public class VRouter extends simplenet.Router{
     // hold separately my table
     HashMap<Integer,Double> routingTable = new HashMap<>();
 
-
-    /**
-     * Initializing the Router
-     * Creates a message that sends to this router interfaces
-     * it's own name
-     * */
     @Override
     public void initialize() {
+        routingTable.put(my_address(),0.0);
         sendRoutingMessage(true);
     }
 
@@ -24,15 +19,16 @@ public class VRouter extends simplenet.Router{
 
         if (((VectorMessage)message).revealingName){
             int routerName = ((VectorMessage) message).routerName;
-            if(routingTable.containsKey(routerName)){
-                if(routingTable.get(routerName) > link_cost(interfx)){
-                    routingTable.put(routerName, link_cost(interfx));
-                    set_forwarding_entry(routerName,interfx);
-                }
-            }else{
+            if(!routingTable.containsKey(routerName)){
                 routingTable.put(routerName, link_cost(interfx));
                 set_forwarding_entry(routerName,interfx);
             }
+//            else{
+//                if(routingTable.get(routerName) > link_cost(interfx)){
+//                    routingTable.put(routerName, link_cost(interfx));
+//                    set_forwarding_entry(routerName,interfx);
+//                }
+//            }
             sendRoutingMessage(false);
         }else {
 
