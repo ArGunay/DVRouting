@@ -1,13 +1,10 @@
 import simplenet.*;
-
 import java.util.HashMap;
 
 public class VRouter extends simplenet.Router{
-
-
     // hold separately my table
     HashMap<Integer,Double> routingTable = new HashMap<>();
-
+    
     @Override
     public void initialize() {
         routingTable.put(my_address(),0.0);
@@ -23,19 +20,13 @@ public class VRouter extends simplenet.Router{
                 routingTable.put(routerName, link_cost(interfx));
                 set_forwarding_entry(routerName,interfx);
             }
-//            else{
-//                if(routingTable.get(routerName) > link_cost(interfx)){
-//                    routingTable.put(routerName, link_cost(interfx));
-//                    set_forwarding_entry(routerName,interfx);
-//                }
-//            }
-            sendRoutingMessage(false);
-        }else {
-
+        //    else{ if(routingTable.get(routerName) > link_cost(interfx)){ routingTable.put(routerName, link_cost(interfx)); set_forwarding_entry(routerName,interfx);}}
+            
+        sendRoutingMessage(false);
+        }
+        else{
             HashMap<Integer,Double> table = ((VectorMessage) message).table;
-
             int routerName = ((VectorMessage)message).routerName;
-
             for(Integer key : table.keySet()){
                 // If I have not seen this router I save it in my table
                 if(!routingTable.containsKey(key)){
@@ -43,7 +34,8 @@ public class VRouter extends simplenet.Router{
                     routingTable.put(key, link_cost(interfx)+table.get(key));
                     set_forwarding_entry(key,interfx);
                     sendRoutingMessage(false);
-                }else{
+                }
+                else{
                     if(routingTable.get(key) > (routingTable.get(routerName)+table.get(key))){
                         clear_forwarding_entry(key);
                         set_forwarding_entry(key,interfx);
@@ -53,7 +45,6 @@ public class VRouter extends simplenet.Router{
             }
         }
     }
-
     public void sendRoutingMessage(boolean revealName){
         for(int i = 0; i < interfaces(); i++){
             VectorMessage mex = new VectorMessage();
@@ -64,7 +55,6 @@ public class VRouter extends simplenet.Router{
         }
     }
 }
-
 class VectorMessage extends RoutingMessage{
     boolean revealingName;
     public int routerName;
