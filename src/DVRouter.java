@@ -1,124 +1,62 @@
 import simplenet.*;
-
 import java.util.HashMap;
 
-
-public class DVRouter extends simplenet.Router{
-
-
-
-//  Routing table for this router will hold the weights for each neighbor
-    HashMap<Integer, HashMap<Integer, Double>> table = new HashMap<>();
-
-
-
-// ---------------------------- INITIALIZATE ------------------------
+public class VRouter extends simplenet.Router{
+    // hold separately my table
+    HashMap<Integer,Double> routingTable = new HashMap<>();
+    
     @Override
     public void initialize() {
-        // Initializing the table to avoid nullpointer once the first name message comes
-        HashMap<Integer, Double> cost = new HashMap<>();
-        table.put(my_address(), cost);
-
-        // Sending to all neighbors this routers name
-        for(int i = 0; i< interfaces(); i++){
-            send_message(new nameRevealMessage(my_address()),i);
-        }
+        routingTable.put(my_address(),0.0);
+        sendRoutingMessage(true);
     }
 
-//    MESSAGE PROCESSING -------------
     @Override
-    public void process_routing_message(RoutingMessage mex, int ifx) {
+    public void process_routing_message(RoutingMessage message, int interfx) {
 
-
-        // If the first  incoming message is revealing the name
-        if(mex instanceof nameRevealMessage){
-
-
-            int routerName = ((nameRevealMessage) mex).getRoutername();
-
-            // If this routers table does not already contains the routername
-            // that just received add it to the table
-            if(!table.get(my_address()).containsKey(routerName)){
-                table.get(my_address()).put(routerName,link_cost(ifx));
-                set_forwarding_entry(routerName,ifx);
+        if (((VectorMessage)message).revealingName){
+            int routerName = ((VectorMessage) message).routerName;
+            if(!routingTable.containsKey(routerName)){
+                routingTable.put(routerName, link_cost(interfx));
+                set_forwarding_entry(routerName,interfx);
             }
-            // Send a message to all neighbors with the new table
-            for (int i = 0; i < interfaces(); i++){
-                send_message(new DVMessage(table, my_address()),i);
-            }
+        //    else{ if(routingTable.get(routerName) > link_cost(interfx)){ routingTable.put(routerName, link_cost(interfx)); set_forwarding_entry(routerName,interfx);}}
+            
+        sendRoutingMessage(false);
         }
-        else {
-
-            // Receiving a table
-            HashMap<Integer, HashMap<Integer, Double>> receivedTable = ((DVMessage) mex).getMessage();
-
-            int routername = ((DVMessage) mex).getRoutername();
-
-            for(Integer router : receivedTable.get(routername).keySet()) {
-
-                // If my table does not contain this router i add it
-                if (!table.get(my_address()).containsKey(router)) {
-//                System.out.println("adding received table to my table");
-                    table.get(my_address()).put(router, (link_cost(ifx)+receivedTable.get(routername).get(router)));
-                    set_forwarding_entry(router,ifx);
-                    for (int i = 0; i < interfaces(); i++) {
-                        send_message(new DVMessage(table, my_address()), ifx);
-                    }
+        else{
+            HashMap<Integer,Double> table = ((VectorMessage) message).table;
+            int routerName = ((VectorMessage)message).routerName;
+            for(Integer key : table.keySet()){
+                // If I have not seen this router I save it in my table
+                if(!routingTable.containsKey(key)){
+                    // I need to put the key with the weight to 
+                    routingTable.put(key, link_cost(interfx)+table.get(key));
+                    set_forwarding_entry(key,interfx);
+                    sendRoutingMessage(false);
                 }
-                // If i have the table i compare it with mine and save the value with less weight
-                else {
-                    // This is Bellman-Ford
-                    if(table.get(my_address()).get(router) >
-                            table.get(my_address()).get(routername) +
-                                    receivedTable.get(routername).get(router))
-                    {
-                        set_forwarding_entry(router,ifx);
-                        for (int i = 0; i < interfaces(); i++) {
-                            send_message(new DVMessage(table, my_address()), ifx);
-                        }
+                else{
+                    if(routingTable.get(key) > (routingTable.get(routerName)+table.get(key))){
+                        clear_forwarding_entry(key);
+                        set_forwarding_entry(key,interfx);
+                        sendRoutingMessage(false);
                     }
                 }
             }
         }
     }
-}
-
-
-// =========================================  MESSSAGING CLASSES ===========================
-
-// This class is used for sending the routing tables of the routers
-class DVMessage extends RoutingMessage{
-
-    public HashMap<Integer, HashMap<Integer, Double>> table;
-    public int routername;
-
-
-    // Constructor DVMessage
-    public DVMessage(HashMap<Integer, HashMap<Integer, Double>> table, int routername){
-        this.table = table;
-        this.routername = routername;
-    }
-
-    // Getters
-    public HashMap<Integer, HashMap<Integer, Double>> getMessage(){
-        return this.table;
-    }
-
-    public int getRoutername() {
-        return this.routername;
+    public void sendRoutingMessage(boolean revealName){
+        for(int i = 0; i < interfaces(); i++){
+            VectorMessage mex = new VectorMessage();
+            mex.routerName = my_address();
+            mex.table = this.routingTable;
+            mex.revealingName = revealName;
+            send_message(mex,i);
+        }
     }
 }
-
-
-// Class used for the first exchange of router names to neighbors
-class nameRevealMessage  extends RoutingMessage{
-    private int routername;
-
-    public nameRevealMessage(int routername){
-        this.routername = routername;
-    }
-
-    public int getRoutername() {
-        return routername;
-    }
+class VectorMessage extends RoutingMessage{
+    boolean revealingName;
+    public int routerName;
+    public HashMap<Integer,Double> table;
 }
